@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Sign In | Booking site</title>
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+      integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH"
+      crossorigin="anonymous"
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="styles.css" />
+    <script
+      defer
+      src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
+      integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz"
+      crossorigin="anonymous"
+    ></script>
+    <script defer src="app.js"></script>
+  </head>
+  <body>
+    <header class="site-header">
+      <div class="container nav">
+        <a class="brand" href="index.html">Booking site</a>
+        <div class="nav-actions">
+          <a class="btn btn-concerts" href="index.html">Concerts</a>
+          <a class="btn btn-primary" href="signup.html">Create account</a>
+        </div>
+      </div>
+    </header>
+
+    <main class="layout-auth">
+      <section class="panel shadow-sm">
+        <h1>Sign In</h1>
+        <p class="help">Access your account to book concerts in Leeds.</p>
+        <form id="signinForm" class="needs-validation">
+          <div class="form-group">
+            <label for="signinEmail">Email</label>
+            <input id="signinEmail" class="form-control" name="email" type="email" autocomplete="email" required />
+          </div>
+          <div class="form-group">
+            <label for="signinPassword">Password</label>
+            <input id="signinPassword" class="form-control" name="password" type="password" autocomplete="current-password" required />
+          </div>
+          <button class="btn btn-primary w-100" type="submit">Sign in</button>
+        </form>
+      </section>
+    </main>
+  </body>
+</html>
