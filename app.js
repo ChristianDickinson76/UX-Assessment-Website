@@ -1,5 +1,6 @@
 const API_BASE_URL = window.BOOKING_API_BASE_URL || "http://127.0.0.1:3000/api";
 const TOKEN_KEY = "leedsAuthToken";
+const ACCESSIBILITY_KEY = "leedsAccessibilitySettings";
 
 let currentShowFilters = {
   category: "all",
@@ -9,6 +10,12 @@ let currentShowFilters = {
 let bookingDraft = null;
 
 let favouriteShowCodes = new Set();
+
+const defaultAccessibilitySettings = {
+  darkMode: false,
+  highContrast: false,
+  largeText: false
+};
 
 function getAuthToken() {
   return localStorage.getItem(TOKEN_KEY) || "";
@@ -26,6 +33,28 @@ function clearAuthSession() {
 
 function getCurrentUser() {
   return JSON.parse(localStorage.getItem("leedsCurrentUser") || "null");
+}
+
+function getAccessibilitySettings() {
+  try {
+    const stored = JSON.parse(localStorage.getItem(ACCESSIBILITY_KEY) || "null");
+    return {
+      ...defaultAccessibilitySettings,
+      ...(stored || {})
+    };
+  } catch (_error) {
+    return { ...defaultAccessibilitySettings };
+  }
+}
+
+function setAccessibilitySettings(settings) {
+  localStorage.setItem(ACCESSIBILITY_KEY, JSON.stringify(settings));
+}
+
+function applyAccessibilitySettings(settings = getAccessibilitySettings()) {
+  document.body.classList.toggle("theme-dark", Boolean(settings.darkMode));
+  document.body.classList.toggle("theme-monochrome", Boolean(settings.highContrast));
+  document.body.classList.toggle("theme-large-text", Boolean(settings.largeText));
 }
 
 function isSignedIn() {
@@ -237,6 +266,37 @@ function initAuthStatus() {
   signOutButton.addEventListener("click", () => {
     clearAuthSession();
     window.location.href = "index.html";
+  });
+}
+
+function initAccessibilityPage() {
+  const form = document.querySelector("#accessibilityForm");
+  if (!form) return;
+
+  const darkModeInput = form.querySelector("#prefDarkMode");
+  const highContrastInput = form.querySelector("#prefHighContrast");
+  const largeTextInput = form.querySelector("#prefLargeText");
+
+  const settings = getAccessibilitySettings();
+  darkModeInput.checked = settings.darkMode;
+  highContrastInput.checked = settings.highContrast;
+  largeTextInput.checked = settings.largeText;
+
+  const saveSettings = () => {
+    const nextSettings = {
+      darkMode: darkModeInput.checked,
+      highContrast: highContrastInput.checked,
+      largeText: largeTextInput.checked
+    };
+
+    setAccessibilitySettings(nextSettings);
+    applyAccessibilitySettings(nextSettings);
+  };
+
+  [darkModeInput, highContrastInput, largeTextInput].forEach((input) => {
+    input.addEventListener("change", () => {
+      saveSettings();
+    });
   });
 }
 
@@ -566,6 +626,7 @@ async function initTicketsPage() {
 }
 
 document.addEventListener("DOMContentLoaded", () => {
+  applyAccessibilitySettings();
   initAuthStatus();
   initHomePage();
   initSignUpPage();
@@ -573,4 +634,5 @@ document.addEventListener("DOMContentLoaded", () => {
   initBookingPage();
   initPaymentPage();
   initTicketsPage();
+  initAccessibilityPage();
 });

@@ -24,6 +24,56 @@ body {
   color: var(--ink);
 }
 
+body.theme-dark {
+  --bg: #0b1220;
+  --surface: #1a2334;
+  --ink: #f2f5ff;
+  --muted: #b4c0d7;
+  --accent: #6fa8ff;
+  --accent-2: #8bb9ff;
+  --ring: rgba(111, 168, 255, 0.4);
+  --border: #2d3b52;
+  --success: #8dd0ff;
+  background:
+    radial-gradient(circle at 85% 10%, rgba(111, 168, 255, 0.18), transparent 35%),
+    radial-gradient(circle at 10% 75%, rgba(111, 168, 255, 0.12), transparent 30%),
+    var(--bg);
+}
+
+body.theme-monochrome {
+  --bg: #f4f4f4;
+  --surface: #ffffff;
+  --ink: #111111;
+  --muted: #343434;
+  --accent: #000000;
+  --accent-2: #1f1f1f;
+  --ring: rgba(0, 0, 0, 0.3);
+  --border: #6f6f6f;
+  --success: #000000;
+  background: var(--bg);
+}
+
+body.theme-dark.theme-monochrome {
+  --bg: #101010;
+  --surface: #1d1d1d;
+  --ink: #f5f5f5;
+  --muted: #c8c8c8;
+  --accent: #ffffff;
+  --accent-2: #e6e6e6;
+  --ring: rgba(255, 255, 255, 0.35);
+  --border: #8f8f8f;
+  --success: #ffffff;
+  background: var(--bg);
+}
+
+body.theme-large-text {
+  font-size: 1.125rem;
+}
+
+body.theme-large-text .hero h1 {
+  line-height: 1.05;
+}
+
 a {
   color: inherit;
 }
@@ -40,6 +90,11 @@ a {
   backdrop-filter: blur(8px);
   background: rgba(255, 255, 255, 0.92);
   border-bottom: 1px solid var(--border);
+}
+
+body.theme-dark .site-header {
+  background: rgba(11, 18, 32, 0.92);
+  border-bottom-color: #30415f;
 }
 
 .nav {
@@ -86,9 +141,30 @@ a {
   box-shadow: 0 8px 20px rgba(30, 102, 208, 0.25);
 }
 
+body.theme-dark.theme-monochrome .btn-primary,
+body.theme-dark.theme-monochrome .btn-concerts {
+  color: #101010;
+}
+
 .btn-secondary {
   background: var(--surface);
   border: 1px solid var(--border);
+}
+
+body:not(.theme-dark) .site-header .btn-secondary {
+  background: #ffffff;
+  color: #17375f;
+  border-color: #bfd1e8;
+}
+
+body:not(.theme-dark) .site-header .btn-primary {
+  background: #1e66d0;
+  color: #ffffff;
+}
+
+body:not(.theme-dark) .site-header .btn-ghost {
+  color: #17375f;
+  border-color: #17375f;
 }
 
 .btn-ghost {
@@ -158,6 +234,20 @@ a {
   box-shadow: 0 12px 28px rgba(30, 102, 208, 0.32);
 }
 
+body.theme-dark #navSignIn {
+  background: #dce8ff;
+  color: #153761;
+  border-color: #8fb4ef;
+  box-shadow: 0 10px 24px rgba(143, 180, 239, 0.24);
+}
+
+body.theme-dark #navSignIn:hover,
+body.theme-dark #navSignIn:focus-visible {
+  background: #6fa8ff;
+  color: #0b1220;
+  border-color: #6fa8ff;
+}
+
 .btn-concerts {
   background: linear-gradient(120deg, var(--accent), #3c8df0);
   color: #fff;
@@ -187,6 +277,7 @@ a {
   animation: rise 0.45s ease both;
   display: flex;
   flex-direction: column;
+  color: var(--ink);
 }
 
 .card .venue {
@@ -230,6 +321,7 @@ a {
   border-radius: 999px;
   padding: 0.25rem 0.6rem;
   background: #e8f1fc;
+  color: var(--ink);
 }
 
 .page-intro {
@@ -259,6 +351,7 @@ a {
   background: #fff;
   display: grid;
   gap: 0.6rem;
+  color: var(--ink);
 }
 
 .ticket-top {
@@ -310,6 +403,103 @@ a {
   letter-spacing: 0.03em;
 }
 
+.settings-list {
+  display: grid;
+  gap: 0.85rem;
+  margin: 1rem 0;
+}
+
+.settings-option {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 0.8rem 0.9rem;
+  background: rgba(255, 255, 255, 0.5);
+}
+
+body.theme-dark .settings-option,
+body.theme-dark .toolbar {
+  background: rgba(26, 35, 52, 0.72);
+}
+
+.settings-option label {
+  display: flex;
+  gap: 0.65rem;
+  align-items: flex-start;
+  font-weight: 700;
+}
+
+.settings-option input[type="checkbox"] {
+  width: auto;
+  margin-top: 0.2rem;
+}
+
+.settings-switch-input {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 2.7rem;
+  min-width: 2.7rem;
+  height: 1.5rem;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: #c8d2e2;
+  cursor: pointer;
+  position: relative;
+  transition: background 0.2s ease, border-color 0.2s ease;
+}
+
+.settings-switch-input::after {
+  content: "";
+  position: absolute;
+  top: 0.14rem;
+  left: 0.16rem;
+  width: 1.1rem;
+  height: 1.1rem;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+  transition: transform 0.2s ease;
+}
+
+.settings-switch-input:checked {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+.settings-switch-input:checked::after {
+  transform: translateX(1.16rem);
+}
+
+.settings-switch-input:focus-visible {
+  outline: 3px solid var(--ring);
+  outline-offset: 2px;
+}
+
+body.theme-dark .settings-switch-input {
+  background: #3a4a66;
+  border-color: #60779e;
+}
+
+body.theme-dark .settings-switch-input::after {
+  background: #dbe7ff;
+}
+
+body.theme-dark .settings-switch-input:checked {
+  background: #6fa8ff;
+  border-color: #6fa8ff;
+}
+
+body.theme-dark .settings-switch-input:checked::after {
+  background: #0b1220;
+}
+
+.settings-description {
+  display: block;
+  margin-top: 0.2rem;
+  color: var(--muted);
+  font-size: 0.92rem;
+  font-weight: 500;
+}
+
 .tickets-page {
   padding-bottom: 2rem;
 }
@@ -343,6 +533,15 @@ select:focus {
 .help {
   color: var(--muted);
   font-size: 0.95rem;
+}
+
+body.theme-dark .badge {
+  background: #2a3a55;
+  color: #f2f5ff;
+}
+
+body.theme-dark .ticket-card {
+  background: var(--surface);
 }
 
 .notice {
