@@ -165,7 +165,7 @@ function renderShowCard(show, index) {
   const favouriteTitle = favouriteShowCodes.has(show.id) ? "Remove from favourites" : "Add to favourites";
 
   return `
-    <article class="card h-100" style="animation-delay:${index * 60}ms">
+    <article class="card h-100" style="animation-delay:${index * 60}ms" data-category="${show.category}">
       <h3>${show.artist}</h3>
       <p class="venue">${show.venue}</p>
       <div class="meta">
