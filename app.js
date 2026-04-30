@@ -1,6 +1,7 @@
 const API_BASE_URL = window.BOOKING_API_BASE_URL || "http://127.0.0.1:3000/api";
 const TOKEN_KEY = "leedsAuthToken";
 const ACCESSIBILITY_KEY = "leedsAccessibilitySettings";
+const PROFILE_KEY = "leedsUserProfile";
 
 let currentShowFilters = {
   category: "all",
@@ -194,8 +195,10 @@ function renderShowCard(show, index) {
   const favouriteTitle = favouriteShowCodes.has(show.id) ? "Remove from favourites" : "Add to favourites";
 
   return `
-    <article class="card h-100" style="animation-delay:${index * 60}ms" data-category="${show.category}">
+    <article class="card h-100" style="animation-delay:${index * 60}ms" data-category="${show.genre}">
+
       <h3>${show.artist}</h3>
+      <img src="https://picsum.photos/200/50?random=${show.id}" alt="Concert Image" class="img-fluid">
       <p class="venue">${show.venue}</p>
       <div class="meta">
         <span class="badge">${formatDate(show.date)}</span>
@@ -214,7 +217,6 @@ function renderShowCard(show, index) {
         </button>
         <a class="btn btn-primary btn-inline" href="booking.html?show=${show.id}">Book now</a>
       </div>
-      <p class="favourite-note">${show.genre}</p>
     </article>
   `;
 }
@@ -243,30 +245,33 @@ async function renderShows() {
 }
 
 function initAuthStatus() {
-  const label = document.querySelector("#authStatus");
-  const user = getCurrentUser();
-  const signInLink = document.querySelector("#navSignIn");
-  const signUpLink = document.querySelector("#navSignUp");
-  const signOutButton = document.querySelector("#navSignOut");
+  const authStatus = document.getElementById("authStatus");
+  const navSignIn = document.getElementById("navSignIn");
+  const navSignUp = document.getElementById("navSignUp");
+  const navProfile = document.getElementById("navProfile");
+  const navSignOut = document.getElementById("navSignOut");
 
-  if (!label || !signInLink || !signUpLink || !signOutButton) return;
+  if (!authStatus) return;
 
-  if (user && getAuthToken()) {
-    label.textContent = `Signed in as ${user.name}`;
-    signInLink.classList.add("hidden");
-    signUpLink.classList.add("hidden");
-    signOutButton.classList.remove("hidden");
+  if (isSignedIn()) {
+    const user = getCurrentUser();
+    authStatus.textContent = `Signed in as ${user?.name || user?.email || "user"}`;
+
+    navSignIn?.classList.add("hidden");
+    navSignUp?.classList.add("hidden");
+    navProfile?.classList.remove("hidden");
+    navSignOut?.classList.remove("hidden");
+
+    navSignOut?.addEventListener("click", () => {
+      clearAuthSession();
+      window.location.href = "index.html";
+    });
   } else {
-    label.textContent = "Not signed in";
-    signInLink.classList.remove("hidden");
-    signUpLink.classList.remove("hidden");
-    signOutButton.classList.add("hidden");
+    navSignIn?.classList.remove("hidden");
+    navSignUp?.classList.remove("hidden");
+    navProfile?.classList.add("hidden");
+    navSignOut?.classList.add("hidden");
   }
-
-  signOutButton.addEventListener("click", () => {
-    clearAuthSession();
-    window.location.href = "index.html";
-  });
 }
 
 function initAccessibilityPage() {
@@ -625,6 +630,52 @@ async function initTicketsPage() {
   }
 }
 
+function getUserProfile() {
+  try {
+    return JSON.parse(localStorage.getItem(PROFILE_KEY) || "null") || { bio: "", picture: null };
+  } catch (_error) {
+    return { bio: "", picture: null };
+  }
+}
+
+function setUserProfile(profile) {
+  localStorage.setItem(PROFILE_KEY, JSON.stringify(profile));
+}
+
+function initProfilePage() {
+  const form = document.getElementById("profileForm");
+  const bioInput = document.getElementById("bioInput");
+  const profilePicture = document.getElementById("profilePicture");
+  const profilePreview = document.getElementById("profilePreview");
+
+  const profile = getUserProfile();
+  bioInput.value = profile.bio || "";
+  if (profile.picture) {
+    profilePreview.src = profile.picture;
+  }
+
+  profilePicture.addEventListener("change", (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      profilePreview.src = event.target?.result;
+    };
+    reader.readAsDataURL(file);
+  });
+
+  form.addEventListener("submit", (e) => {
+    e.preventDefault();
+    const profile = {
+      bio: bioInput.value,
+      picture: profilePreview.src
+    };
+    setUserProfile(profile);
+    alert("Profile saved!");
+  });
+}
+
 document.addEventListener("DOMContentLoaded", () => {
   applyAccessibilitySettings();
   initAuthStatus();
@@ -635,4 +686,7 @@ document.addEventListener("DOMContentLoaded", () => {
   initPaymentPage();
   initTicketsPage();
   initAccessibilityPage();
+  if (document.getElementById("profileForm")) {
+    initProfilePage();
+  }
 });

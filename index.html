@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Booking site | Concert Booking</title>
+    <title>Book It | Concert Booking</title>
     <link
       href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
       rel="stylesheet"
@@ -25,14 +25,14 @@
   <body>
     <header class="site-header">
       <div class="container nav">
-        <a class="brand" href="index.html">Booking site</a>
+        <a class="brand" href="index.html">Book It</a>
         <div class="nav-actions d-flex align-items-center">
           <span id="authStatus" class="help"></span>
           <a class="btn btn-secondary" href="accessibility.html">Accessibility</a>
           <a class="btn btn-secondary" href="tickets.html">My tickets</a>
           <a id="navSignIn" class="btn btn-secondary" href="signin.html">Sign in</a>
           <a id="navSignUp" class="btn btn-primary" href="signup.html">Create account</a>
-          <button id="navSignOut" class="btn btn-ghost hidden" type="button">Sign out</button>
+          <a id="navProfile" class="btn btn-primary hidden" href="profile.html">Profile</a>
         </div>
       </div>
     </header>
@@ -40,6 +40,7 @@
     <main class="container">
       <section class="hero">
         <h1>Book the grooviest night in leeds</h1>
+        <img src="Concert.jpeg" alt="Main Page Image: A Concert in Leeds" class="img-fluid">
         <div class="hero-actions">
         </div>
       </section>
@@ -49,8 +50,8 @@
           <div class="form-group compact">
             <label for="categoryFilter">Category</label>
             <select id="categoryFilter" name="category">
-              <option value="all">All categories</option>
-              <option value="Live Music">Live Music</option>
+              <option value="all">All genres</option>
+              <option value="Indie Pop">Indie Pop</option>
               <option value="Theatre">Theatre</option>
               <option value="Opera">Opera</option>
               <option value="Ballet">Ballet</option>
