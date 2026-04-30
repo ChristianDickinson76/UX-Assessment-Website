@@ -18,6 +18,10 @@ const userSchema = new mongoose.Schema(
     passwordHash: {
       type: String,
       required: true
+    },
+    favoriteShowCodes: {
+      type: [String],
+      default: []
     }
   },
   { timestamps: true }

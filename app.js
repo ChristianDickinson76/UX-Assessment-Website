@@ -1,5 +1,12 @@
-const API_BASE_URL = window.BOOKING_API_BASE_URL || "http://localhost:3000/api";
+const API_BASE_URL = window.BOOKING_API_BASE_URL || "http://127.0.0.1:3000/api";
 const TOKEN_KEY = "leedsAuthToken";
+
+let currentShowFilters = {
+  category: "all",
+  date: ""
+};
+
+let favouriteShowCodes = new Set();
 
 function getAuthToken() {
   return localStorage.getItem(TOKEN_KEY) || "";
@@ -17,6 +24,10 @@ function clearAuthSession() {
 
 function getCurrentUser() {
   return JSON.parse(localStorage.getItem("leedsCurrentUser") || "null");
+}
+
+function isSignedIn() {
+  return Boolean(getAuthToken() && getCurrentUser());
 }
 
 async function apiRequest(path, options = {}) {
@@ -49,12 +60,131 @@ async function apiRequest(path, options = {}) {
 }
 
 function formatDate(isoDate) {
-  return new Date(isoDate + "T20:00:00").toLocaleDateString("en-GB", {
+  return new Date(`${isoDate}T20:00:00`).toLocaleDateString("en-GB", {
     weekday: "short",
     day: "2-digit",
     month: "short",
     year: "numeric"
   });
+}
+
+function formatCurrency(value) {
+  return `£${Number(value).toFixed(0)}`;
+}
+
+function buildShowQueryString() {
+  const params = new URLSearchParams();
+
+  if (currentShowFilters.category && currentShowFilters.category !== "all") {
+    params.set("category", currentShowFilters.category);
+  }
+
+  if (currentShowFilters.date) {
+    params.set("date", currentShowFilters.date);
+  }
+
+  const query = params.toString();
+  return query ? `?${query}` : "";
+}
+
+function updateFilterSummary() {
+  const summary = document.querySelector("#filterSummary");
+  if (!summary) return;
+
+  const parts = [];
+  if (currentShowFilters.category && currentShowFilters.category !== "all") {
+    parts.push(currentShowFilters.category);
+  } else {
+    parts.push("all categories");
+  }
+
+  if (currentShowFilters.date) {
+    parts.push(`on ${formatDate(currentShowFilters.date)}`);
+  }
+
+  summary.textContent = `Showing ${parts.join(" ")}.`;
+}
+
+async function loadFavouriteShowCodes() {
+  if (!isSignedIn()) {
+    favouriteShowCodes = new Set();
+    return favouriteShowCodes;
+  }
+
+  try {
+    const result = await apiRequest("/users/me/favourites");
+    favouriteShowCodes = new Set(result.favoriteShowCodes || []);
+  } catch (error) {
+    favouriteShowCodes = new Set();
+  }
+
+  return favouriteShowCodes;
+}
+
+async function toggleFavouriteShow(showId) {
+  if (!isSignedIn()) {
+    window.location.href = `signin.html?redirect=${encodeURIComponent("index.html")}`;
+    return;
+  }
+
+  const result = await apiRequest(`/users/me/favourites/${encodeURIComponent(showId)}`, {
+    method: "POST"
+  });
+  favouriteShowCodes = new Set(result.favoriteShowCodes || []);
+}
+
+function renderShowCard(show, index) {
+  const favouriteLabel = favouriteShowCodes.has(show.id) ? "Starred" : "Star";
+  const favouriteClass = favouriteShowCodes.has(show.id) ? "btn-favourite is-active" : "btn-favourite";
+  const favouriteTitle = favouriteShowCodes.has(show.id) ? "Remove from favourites" : "Add to favourites";
+
+  return `
+    <article class="card h-100" style="animation-delay:${index * 60}ms">
+      <h3>${show.artist}</h3>
+      <p class="venue">${show.venue}</p>
+      <div class="meta">
+        <span class="badge">${formatDate(show.date)}</span>
+        <span class="badge">${show.category}</span>
+        <span class="badge">${formatCurrency(show.price)}</span>
+      </div>
+      <div class="card-actions">
+        <button
+          class="btn ${favouriteClass} btn-inline"
+          type="button"
+          data-favourite-id="${show.id}"
+          aria-pressed="${favouriteShowCodes.has(show.id) ? "true" : "false"}"
+          title="${favouriteTitle}"
+        >
+          ${favouriteLabel}
+        </button>
+        <a class="btn btn-primary btn-inline" href="booking.html?show=${show.id}">Book now</a>
+      </div>
+      <p class="favourite-note">${show.genre}</p>
+    </article>
+  `;
+}
+
+async function renderShows() {
+  const host = document.querySelector("#showsGrid");
+  if (!host) return;
+
+  host.innerHTML = `<p class="help">Loading concerts...</p>`;
+
+  try {
+    await loadFavouriteShowCodes();
+    const shows = await apiRequest(`/shows${buildShowQueryString()}`);
+
+    if (!shows.length) {
+      host.innerHTML = '<p class="empty-state">No concerts match the current filters.</p>';
+      return;
+    }
+
+    host.innerHTML = shows.map((show, index) => renderShowCard(show, index)).join("");
+  } catch (error) {
+    host.innerHTML = `<p class="help">${error.message}</p>`;
+  }
+
+  updateFilterSummary();
 }
 
 function initAuthStatus() {
@@ -84,31 +214,80 @@ function initAuthStatus() {
   });
 }
 
-async function renderShows() {
+function initHomePage() {
+  const filterForm = document.querySelector("#filterForm");
+  const clearFiltersButton = document.querySelector("#clearFilters");
+  const categoryFilter = document.querySelector("#categoryFilter");
+  const dateFilter = document.querySelector("#dateFilter");
   const host = document.querySelector("#showsGrid");
+
   if (!host) return;
 
-  try {
-    const shows = await apiRequest("/shows");
-    host.innerHTML = shows
-      .map(
-        (show, index) => `
-        <article class="card h-100" style="animation-delay:${index * 60}ms">
-          <h3>${show.artist}</h3>
-          <p class="venue">${show.venue}</p>
-          <div class="meta">
-            <span class="badge">${formatDate(show.date)}</span>
-            <span class="badge">${show.genre}</span>
-            <span class="badge">£${show.price}</span>
-          </div>
-          <a class="btn btn-primary" href="booking.html?show=${show.id}">Book now</a>
-        </article>
-      `
-      )
-      .join("");
-  } catch (error) {
-    host.innerHTML = `<p class="help">${error.message}</p>`;
+  const pageParams = new URLSearchParams(window.location.search);
+  currentShowFilters = {
+    category: pageParams.get("category") || "all",
+    date: pageParams.get("date") || ""
+  };
+
+  if (categoryFilter) {
+    categoryFilter.value = currentShowFilters.category;
   }
+
+  if (dateFilter) {
+    dateFilter.value = currentShowFilters.date;
+  }
+
+  updateFilterSummary();
+
+  if (filterForm) {
+    filterForm.addEventListener("submit", (event) => {
+      event.preventDefault();
+      currentShowFilters = {
+        category: categoryFilter?.value || "all",
+        date: dateFilter?.value || ""
+      };
+      renderShows();
+    });
+  }
+
+  if (clearFiltersButton) {
+    clearFiltersButton.addEventListener("click", () => {
+      currentShowFilters = {
+        category: "all",
+        date: ""
+      };
+
+      if (categoryFilter) {
+        categoryFilter.value = "all";
+      }
+
+      if (dateFilter) {
+        dateFilter.value = "";
+      }
+
+      renderShows();
+    });
+  }
+
+  host.addEventListener("click", async (event) => {
+    const button = event.target.closest("[data-favourite-id]");
+    if (!button) return;
+
+    const showId = button.getAttribute("data-favourite-id");
+    if (!showId) return;
+
+    button.disabled = true;
+    try {
+      await toggleFavouriteShow(showId);
+      await renderShows();
+    } catch (error) {
+      alert(error.message);
+    } finally {
+      button.disabled = false;
+    }
+  });
+
+  renderShows();
 }
 
 function initSignUpPage() {
@@ -183,6 +362,7 @@ async function initBookingPage() {
         <strong>${show.artist}</strong><br>
         ${show.venue}<br>
         ${formatDate(show.date)}<br>
+        ${show.category}<br>
         £${show.price} per ticket
       </div>
     `;
@@ -230,10 +410,61 @@ async function initBookingPage() {
   });
 }
 
+async function initTicketsPage() {
+  const host = document.querySelector("#ticketsList");
+  if (!host) return;
+
+  if (!isSignedIn()) {
+    window.location.href = `signin.html?redirect=${encodeURIComponent("tickets.html")}`;
+    return;
+  }
+
+  host.innerHTML = `<p class="help">Loading your tickets...</p>`;
+
+  try {
+    const bookings = await apiRequest("/bookings/me");
+
+    if (!bookings.length) {
+      host.innerHTML = `
+        <div class="empty-state">
+          <p>You have not booked any events yet.</p>
+          <a class="btn btn-primary" href="index.html#concertsSection">Browse concerts</a>
+        </div>
+      `;
+      return;
+    }
+
+    host.innerHTML = bookings
+      .map(
+        (booking) => `
+          <article class="ticket-card">
+            <div class="ticket-top">
+              <div>
+                <h3>${booking.show.artist}</h3>
+                <p class="venue">${booking.show.venue}</p>
+              </div>
+              <strong>${formatCurrency(booking.totalPrice)}</strong>
+            </div>
+            <div class="ticket-meta">
+              <span class="badge">${formatDate(booking.show.date)}</span>
+              <span class="badge">${booking.show.category}</span>
+              <span class="badge">${booking.ticketCount} ticket${booking.ticketCount > 1 ? "s" : ""}</span>
+            </div>
+            <p class="favourite-note">Booked on ${new Date(booking.bookedAt).toLocaleDateString("en-GB")}</p>
+          </article>
+        `
+      )
+      .join("");
+  } catch (error) {
+    host.innerHTML = `<p class="help">${error.message}</p>`;
+  }
+}
+
 document.addEventListener("DOMContentLoaded", () => {
   initAuthStatus();
-  renderShows();
+  initHomePage();
   initSignUpPage();
   initSignInPage();
   initBookingPage();
+  initTicketsPage();
 });

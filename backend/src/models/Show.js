@@ -27,6 +27,11 @@ const showSchema = new mongoose.Schema(
       required: true,
       trim: true
     },
+    category: {
+      type: String,
+      trim: true,
+      default: "Concerts"
+    },
     price: {
       type: Number,
       required: true,

@@ -32,4 +32,37 @@ async function createBooking(req, res) {
   });
 }
 
-module.exports = { createBooking };
+function mapBooking(booking) {
+  const show = booking.showId;
+
+  if (!show) {
+    return null;
+  }
+
+  return {
+    id: booking._id,
+    ticketCount: booking.ticketCount,
+    totalPrice: booking.totalPrice,
+    bookedAt: booking.createdAt,
+    show: {
+      id: show.showCode,
+      artist: show.artist,
+      venue: show.venue,
+      date: show.date.toISOString().slice(0, 10),
+      category: show.category || show.genre,
+      genre: show.genre,
+      price: show.price
+    }
+  };
+}
+
+async function listMyBookings(req, res) {
+  const bookings = await Booking.find({ userId: req.auth.userId })
+    .sort({ createdAt: -1 })
+    .populate("showId")
+    .lean();
+
+  return res.status(200).json(bookings.map(mapBooking).filter(Boolean));
+}
+
+module.exports = { createBooking, listMyBookings };

@@ -6,13 +6,54 @@ const env = require("./config/env");
 const authRoutes = require("./routes/authRoutes");
 const showRoutes = require("./routes/showRoutes");
 const bookingRoutes = require("./routes/bookingRoutes");
+const userRoutes = require("./routes/userRoutes");
 
 const app = express();
+
+function isLocalDevOrigin(origin) {
+  try {
+    const url = new URL(origin);
+    return url.hostname === "localhost" || url.hostname === "127.0.0.1";
+  } catch (_error) {
+    return false;
+  }
+}
+
+function isAllowedCorsOrigin(origin) {
+  if (!origin) {
+    return true;
+  }
+
+  if (env.corsOrigin === "*") {
+    return true;
+  }
+
+  const allowedOrigins = String(env.corsOrigin)
+    .split(",")
+    .map((entry) => entry.trim())
+    .filter(Boolean);
+
+  if (allowedOrigins.includes(origin)) {
+    return true;
+  }
+
+  if (isLocalDevOrigin(origin)) {
+    return allowedOrigins.some((entry) => isLocalDevOrigin(entry));
+  }
+
+  return false;
+}
 
 app.use(helmet());
 app.use(
   cors({
-    origin: env.corsOrigin === "*" ? true : env.corsOrigin
+    origin: (origin, callback) => {
+      if (isAllowedCorsOrigin(origin)) {
+        return callback(null, true);
+      }
+
+      return callback(new Error("Not allowed by CORS"));
+    }
   })
 );
 app.use(express.json());
@@ -29,6 +70,7 @@ app.get("/api/health", (_req, res) => {
 app.use("/api/auth", authLimiter, authRoutes);
 app.use("/api/shows", showRoutes);
 app.use("/api/bookings", bookingRoutes);
+app.use("/api/users", userRoutes);
 
 app.use((err, _req, res, _next) => {
   // eslint-disable-next-line no-console

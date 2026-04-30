@@ -28,6 +28,7 @@
         <a class="brand" href="index.html">Booking site</a>
         <div class="nav-actions d-flex align-items-center">
           <span id="authStatus" class="help"></span>
+          <a class="btn btn-secondary" href="tickets.html">My tickets</a>
           <a id="navSignIn" class="btn btn-secondary" href="signin.html">Sign in</a>
           <a id="navSignUp" class="btn btn-primary" href="signup.html">Create account</a>
           <button id="navSignOut" class="btn btn-ghost hidden" type="button">Sign out</button>
@@ -45,6 +46,32 @@
         <div class="hero-actions">
           <a class="btn btn-concerts" href="#concertsSection">View concerts</a>
         </div>
+      </section>
+
+      <section class="toolbar" aria-label="Concert filters">
+        <form id="filterForm" class="filter-bar">
+          <div class="form-group compact">
+            <label for="categoryFilter">Category</label>
+            <select id="categoryFilter" name="category">
+              <option value="all">All categories</option>
+              <option value="Live Music">Live Music</option>
+              <option value="Theatre">Theatre</option>
+              <option value="Opera">Opera</option>
+              <option value="Ballet">Ballet</option>
+              <option value="Concerts">Concerts</option>
+              <option value="Musicals">Musicals</option>
+            </select>
+          </div>
+          <div class="form-group compact">
+            <label for="dateFilter">Date</label>
+            <input id="dateFilter" name="date" type="date" />
+          </div>
+          <div class="filter-actions">
+            <button class="btn btn-primary" type="submit">Apply filters</button>
+            <button id="clearFilters" class="btn btn-secondary" type="button">Clear</button>
+          </div>
+        </form>
+        <p id="filterSummary" class="help"></p>
       </section>
 
       <section id="concertsSection" aria-label="Concerts in Leeds">
