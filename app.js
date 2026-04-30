@@ -6,6 +6,8 @@ let currentShowFilters = {
   date: ""
 };
 
+let bookingDraft = null;
+
 let favouriteShowCodes = new Set();
 
 function getAuthToken() {
@@ -70,6 +72,30 @@ function formatDate(isoDate) {
 
 function formatCurrency(value) {
   return `£${Number(value).toFixed(0)}`;
+}
+
+function getBookingDraft() {
+  if (bookingDraft) {
+    return bookingDraft;
+  }
+
+  try {
+    bookingDraft = JSON.parse(sessionStorage.getItem("leedsBookingDraft") || "null");
+  } catch (_error) {
+    bookingDraft = null;
+  }
+
+  return bookingDraft;
+}
+
+function setBookingDraft(draft) {
+  bookingDraft = draft;
+  sessionStorage.setItem("leedsBookingDraft", JSON.stringify(draft));
+}
+
+function clearBookingDraft() {
+  bookingDraft = null;
+  sessionStorage.removeItem("leedsBookingDraft");
 }
 
 function buildShowQueryString() {
@@ -388,22 +414,82 @@ async function initBookingPage() {
     event.preventDefault();
 
     const count = Number(ticketCount.value);
+    setBookingDraft({ showId: show.id, ticketCount: count });
+    window.location.href = "payment.html";
+  });
+}
+
+async function initPaymentPage() {
+  const paymentForm = document.querySelector("#paymentForm");
+  if (!paymentForm) return;
+
+  const token = getAuthToken();
+  const currentUser = getCurrentUser();
+  if (!token || !currentUser) {
+    window.location.href = `signin.html?redirect=${encodeURIComponent("booking.html")}`;
+    return;
+  }
+
+  const draft = getBookingDraft();
+  const details = document.querySelector("#paymentDetails");
+  const total = document.querySelector("#paymentTotal");
+  const nameInput = paymentForm.querySelector("#paymentName");
+
+  if (!draft?.showId || !draft?.ticketCount) {
+    details.innerHTML = `<p class="help">Your booking details are missing. Please return to the concerts page and try again.</p>`;
+    paymentForm.classList.add("hidden");
+    return;
+  }
+
+  let show;
+  try {
+    show = await apiRequest(`/shows/${draft.showId}`);
+  } catch (error) {
+    details.innerHTML = `<p class="help">${error.message}</p>`;
+    paymentForm.classList.add("hidden");
+    return;
+  }
+
+  details.innerHTML = `
+    <div class="notice">
+      <strong>${show.artist}</strong><br>
+      ${show.venue}<br>
+      ${formatDate(show.date)}<br>
+      ${draft.ticketCount} ticket${draft.ticketCount > 1 ? "s" : ""}<br>
+      ${formatCurrency(show.price * draft.ticketCount)} total
+    </div>
+  `;
+
+  total.textContent = `Total to pay: ${formatCurrency(show.price * draft.ticketCount)}`;
+  if (nameInput && currentUser?.name) {
+    nameInput.value = currentUser.name;
+  }
+
+  paymentForm.addEventListener("submit", async (event) => {
+    event.preventDefault();
+
+    const nameOnCard = paymentForm.elements.namedItem("nameOnCard")?.value.trim() || "";
+    const cardNumber = paymentForm.elements.namedItem("cardNumber")?.value.replace(/\s+/g, "") || "";
+    const expiry = paymentForm.elements.namedItem("expiry")?.value.trim() || "";
+    const cvv = paymentForm.elements.namedItem("cvv")?.value.trim() || "";
+    const summary = document.querySelector("#paymentSummary");
+
+    if (!nameOnCard || !cardNumber || !expiry || !cvv) {
+      summary.innerHTML = `<p class="help">Please complete the mock payment form.</p>`;
+      return;
+    }
 
     try {
       const booking = await apiRequest("/bookings", {
         method: "POST",
         body: JSON.stringify({
-          showId: show.id,
-          ticketCount: count
+          showId: draft.showId,
+          ticketCount: draft.ticketCount
         })
       });
 
-      summary.innerHTML = `
-        <p class="success">
-          Booking confirmed for ${booking.ticketCount} ticket${booking.ticketCount > 1 ? "s" : ""} to ${booking.show.artist}.<br>
-          Confirmation sent to ${currentUser.email}. Total paid: £${booking.totalPrice}.
-        </p>
-      `;
+      clearBookingDraft();
+      window.location.href = `tickets.html?booked=${encodeURIComponent(booking.bookingId)}`;
     } catch (error) {
       summary.innerHTML = `<p class="help">${error.message}</p>`;
     }
@@ -451,10 +537,29 @@ async function initTicketsPage() {
               <span class="badge">${booking.ticketCount} ticket${booking.ticketCount > 1 ? "s" : ""}</span>
             </div>
             <p class="favourite-note">Booked on ${new Date(booking.bookedAt).toLocaleDateString("en-GB")}</p>
+            <button class="btn btn-secondary btn-inline" type="button" data-refund-id="${booking.id}">Refund ticket</button>
           </article>
         `
       )
       .join("");
+
+    host.querySelectorAll("[data-refund-id]").forEach((button) => {
+      button.addEventListener("click", async () => {
+        const bookingId = button.getAttribute("data-refund-id");
+        if (!bookingId) return;
+
+        button.disabled = true;
+        try {
+          await apiRequest(`/bookings/${encodeURIComponent(bookingId)}`, {
+            method: "DELETE"
+          });
+          await initTicketsPage();
+        } catch (error) {
+          alert(error.message);
+          button.disabled = false;
+        }
+      });
+    });
   } catch (error) {
     host.innerHTML = `<p class="help">${error.message}</p>`;
   }
@@ -466,5 +571,6 @@ document.addEventListener("DOMContentLoaded", () => {
   initSignUpPage();
   initSignInPage();
   initBookingPage();
+  initPaymentPage();
   initTicketsPage();
 });

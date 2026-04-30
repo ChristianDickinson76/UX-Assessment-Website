@@ -32,6 +32,22 @@ async function createBooking(req, res) {
   });
 }
 
+async function deleteBooking(req, res) {
+  const booking = await Booking.findOneAndDelete({
+    _id: req.params.id,
+    userId: req.auth.userId
+  }).lean();
+
+  if (!booking) {
+    return res.status(404).json({ message: "Booking not found." });
+  }
+
+  return res.status(200).json({
+    message: "Booking refunded.",
+    bookingId: booking._id
+  });
+}
+
 function mapBooking(booking) {
   const show = booking.showId;
 
@@ -65,4 +81,4 @@ async function listMyBookings(req, res) {
   return res.status(200).json(bookings.map(mapBooking).filter(Boolean));
 }
 
-module.exports = { createBooking, listMyBookings };
+module.exports = { createBooking, deleteBooking, listMyBookings };
