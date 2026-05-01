@@ -624,3 +624,55 @@ body.theme-dark .ticket-card {
 .signup-section {
   text-align: center;
 }
+
+#bookingDetails,
+#bookingSummary {
+  background: var(--panel-bg, #fff);
+  color: var(--panel-text, #111);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 12px;
+  padding: 1rem;
+}
+
+body.dark-mode #bookingDetails,
+body.dark-mode #bookingSummary {
+  background: #1f1f1f;
+  color: #f5f5f5;
+  border-color: rgba(255, 255, 255, 0.14);
+}
+
+body.dark-mode #bookingDetails h1,
+body.dark-mode #bookingDetails h2,
+body.dark-mode #bookingDetails h3,
+body.dark-mode #bookingDetails p,
+body.dark-mode #bookingSummary p {
+  color: #f5f5f5;
+}
+
+body.dark-mode #bookingDetails .badge,
+body.dark-mode #bookingSummary .badge {
+  background: #2c2c2c;
+  color: #f5f5f5;
+}
+
+body.dark-mode .panel {
+  background: #1f1f1f;
+  color: #f5f5f5;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+body.dark-mode .panel *,
+body.dark-mode #bookingDetails,
+body.dark-mode #bookingSummary,
+body.dark-mode #bookingTotal,
+body.dark-mode label,
+body.dark-mode h1,
+body.dark-mode p {
+  color: #f5f5f5;
+}
+
+body.dark-mode .form-select {
+  background-color: #2a2a2a;
+  color: #f5f5f5;
+  border-color: rgba(255, 255, 255, 0.18);
+}

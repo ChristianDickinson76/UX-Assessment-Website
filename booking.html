@@ -35,9 +35,11 @@
     </header>
 
     <main class="layout-auth">
-      <section class="panel shadow-sm">
+      <section class="panel booking-panel shadow-sm">
         <h1>Review Your Order</h1>
-        <div id="bookingDetails"></div>
+
+        <div id="bookingDetails" class="booking-details"></div>
+
         <form id="bookingForm" class="needs-validation">
           <div class="form-group">
             <label for="ticketCount">Number of tickets</label>
@@ -50,9 +52,12 @@
               <option value="6">6</option>
             </select>
           </div>
+
           <p id="bookingTotal" class="fw-bold"></p>
-            <button class="btn btn-primary w-100" type="submit">Continue to payment</button>
-          <div id="bookingSummary"></div>
+
+          <button class="btn btn-primary w-100" type="submit">Continue to payment</button>
+
+          <div id="bookingSummary" class="booking-summary"></div>
         </form>
       </section>
     </main>

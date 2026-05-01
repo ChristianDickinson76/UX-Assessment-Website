@@ -27,7 +27,7 @@
           <a class="btn btn-secondary" href="tickets.html">Tickets</a>
           <a class="btn btn-secondary" href="index.html">Concerts</a>
           <a id="navSignIn" class="btn btn-secondary" href="signin.html">Sign in</a>
-          <a id="navSignUp" class="btn btn-primary hidden" href="signup.html">Create account</a>
+          <a id="navSignUp" class="btn btn-primary" href="signup.html">Create account</a>
           <button id="navSignOut" class="btn btn-ghost hidden" type="button">Sign out</button>
         </div>
       </div>
@@ -36,8 +36,18 @@
     <main class="container">
       <section class="form-section">
         <h1>My Profile</h1>
-        
-        <form id="profileForm" class="profile-form">
+
+        <!-- VIEW MODE -->
+        <div id="profileView" class="profile-view">
+          <img id="profileViewImg" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'%3E%3Ccircle cx='100' cy='100' r='100' fill='%23ddd'/%3E%3C/svg%3E" alt="Profile Picture" class="profile-preview">
+          <p id="profileViewBio" class="profile-bio">No bio yet.</p>
+          <div class="form-actions">
+            <button id="editProfileBtn" class="btn btn-primary" type="button">Edit profile</button>
+          </div>
+        </div>
+
+        <!-- edit mode -->
+        <form id="profileForm" class="profile-form hidden" enctype="multipart/form-data" novalidate>
           <div class="form-group">
             <label for="profilePicture">Profile Picture</label>
             <div class="profile-picture-container">
@@ -52,15 +62,14 @@
           </div>
 
           <div class="form-actions">
-            <button class="btn btn-primary" type="submit">Save Profile</button>
+            <button id="saveProfileBtn" class="btn btn-primary" type="submit">Save</button>
+            <button id="cancelEditBtn" class="btn btn-secondary" type="button">Cancel</button>
           </div>
         </form>
 
         <hr class="my-5" />
 
         <div class="signup-section">
-          <p>Don't have an account yet?</p>
-          <a class="btn btn-primary" href="signup.html">Create account</a>
         </div>
       </section>
     </main>

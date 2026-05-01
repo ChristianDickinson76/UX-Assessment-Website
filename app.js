@@ -4,7 +4,7 @@ const ACCESSIBILITY_KEY = "leedsAccessibilitySettings";
 const PROFILE_KEY = "leedsUserProfile";
 
 let currentShowFilters = {
-  category: "all",
+  genre: "all",
   date: ""
 };
 
@@ -33,7 +33,19 @@ function clearAuthSession() {
 }
 
 function getCurrentUser() {
-  return JSON.parse(localStorage.getItem("leedsCurrentUser") || "null");
+  try {
+    const raw = localStorage.getItem("leedsCurrentUser");
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    // normalize primitives into an object so callers can read name/email/id reliably
+    if (typeof parsed === "string" || typeof parsed === "number") {
+      return { id: parsed, name: String(parsed) };
+    }
+    return parsed;
+  } catch (err) {
+    console.error("getCurrentUser parse error", err);
+    return null;
+  }
 }
 
 function getAccessibilitySettings() {
@@ -131,8 +143,8 @@ function clearBookingDraft() {
 function buildShowQueryString() {
   const params = new URLSearchParams();
 
-  if (currentShowFilters.category && currentShowFilters.category !== "all") {
-    params.set("category", currentShowFilters.category);
+  if (currentShowFilters.genre && currentShowFilters.genre !== "all") {
+    params.set("genre", currentShowFilters.genre);
   }
 
   if (currentShowFilters.date) {
@@ -148,10 +160,10 @@ function updateFilterSummary() {
   if (!summary) return;
 
   const parts = [];
-  if (currentShowFilters.category && currentShowFilters.category !== "all") {
-    parts.push(currentShowFilters.category);
+  if (currentShowFilters.genre && currentShowFilters.genre !== "all") {
+    parts.push(currentShowFilters.genre);
   } else {
-    parts.push("all categories");
+    parts.push("all genres");
   }
 
   if (currentShowFilters.date) {
@@ -190,15 +202,21 @@ async function toggleFavouriteShow(showId) {
 }
 
 function renderShowCard(show, index) {
-  const favouriteLabel = favouriteShowCodes.has(show.id) ? "Starred" : "Star";
-  const favouriteClass = favouriteShowCodes.has(show.id) ? "btn-favourite is-active" : "btn-favourite";
-  const favouriteTitle = favouriteShowCodes.has(show.id) ? "Remove from favourites" : "Add to favourites";
+  const isFav = favouriteShowCodes.has(show.id);
+  const favouriteClass = isFav ? "btn-favourite is-active" : "btn-favourite";
+  const favouriteTitle = isFav ? "Remove from favourites" : "Add to favourites";
+
+  const starSvg = (active) => `
+    <svg width="18" height="18" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false" style="vertical-align:middle">
+      <path d="M12 .587l3.668 7.431L23.4 9.75l-5.7 5.56L19.735 24 12 20.01 4.265 24l1.982-8.69L.545 9.75l7.732-1.732L12 .587z"
+        fill="${active ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="1.2"/>
+    </svg>
+  `;
 
   return `
     <article class="card h-100" style="animation-delay:${index * 60}ms" data-category="${show.genre}">
-
       <h3>${show.artist}</h3>
-      <img src="https://picsum.photos/200/50?random=${show.id}" alt="Concert Image" class="img-fluid">
+      <a href = "https://randommusicvideos.com/category/genre/track/"><img src="https://picsum.photos/200/50?random=${show.id}" alt="Concert Image" class="img-fluid"></a>
       <p class="venue">${show.venue}</p>
       <div class="meta">
         <span class="badge">${formatDate(show.date)}</span>
@@ -210,10 +228,11 @@ function renderShowCard(show, index) {
           class="btn ${favouriteClass} btn-inline"
           type="button"
           data-favourite-id="${show.id}"
-          aria-pressed="${favouriteShowCodes.has(show.id) ? "true" : "false"}"
+          aria-pressed="${isFav ? "true" : "false"}"
           title="${favouriteTitle}"
         >
-          ${favouriteLabel}
+          ${starSvg(isFav)}
+          <span class="visually-hidden">${favouriteTitle}</span>
         </button>
         <a class="btn btn-primary btn-inline" href="booking.html?show=${show.id}">Book now</a>
       </div>
@@ -222,7 +241,7 @@ function renderShowCard(show, index) {
 }
 
 async function renderShows() {
-  const host = document.querySelector("#showsGrid");
+  const host = document.querySelector("#showsGrid") || document.querySelector("#concertsSection");
   if (!host) return;
 
   host.innerHTML = `<p class="help">Loading concerts...</p>`;
@@ -231,12 +250,34 @@ async function renderShows() {
     await loadFavouriteShowCodes();
     const shows = await apiRequest(`/shows${buildShowQueryString()}`);
 
-    if (!shows.length) {
+    if (!shows || !shows.length) {
       host.innerHTML = '<p class="empty-state">No concerts match the current filters.</p>';
       return;
     }
 
-    host.innerHTML = shows.map((show, index) => renderShowCard(show, index)).join("");
+    // apply client-side genre/category filter (works even if backend doesn't support the query)
+    let filtered = shows;
+    const cat = (currentShowFilters.genre || "all").toString().toLowerCase().trim();
+    if (cat && cat !== "all") {
+      filtered = shows.filter((s) => {
+        const value = (s.genre || "").toString().toLowerCase().trim();
+        return value === cat;
+      });
+    }
+
+    if (!filtered.length) {
+      host.innerHTML = '<p class="empty-state">No concerts match the current filters.</p>';
+      return;
+    }
+
+    // sort so favourited shows appear first
+    filtered.sort((a, b) => {
+      const af = favouriteShowCodes.has(a.id) ? 1 : 0;
+      const bf = favouriteShowCodes.has(b.id) ? 1 : 0;
+      return bf - af;
+    });
+
+    host.innerHTML = filtered.map((show, index) => renderShowCard(show, index)).join("");
   } catch (error) {
     host.innerHTML = `<p class="help">${error.message}</p>`;
   }
@@ -253,10 +294,17 @@ function initAuthStatus() {
 
   if (!authStatus) return;
 
-  if (isSignedIn()) {
-    const user = getCurrentUser();
-    authStatus.textContent = `Signed in as ${user?.name || user?.email || "user"}`;
+  const user = getCurrentUser();
 
+  if (isSignedIn() && user) {
+    const displayName =
+      user.name ||
+      user.fullName ||
+      user.email ||
+      user.username ||
+      (user.id ? `user ${user.id}` : "user");
+
+    authStatus.textContent = `Signed in as ${displayName}`;
     navSignIn?.classList.add("hidden");
     navSignUp?.classList.add("hidden");
     navProfile?.classList.remove("hidden");
@@ -267,6 +315,7 @@ function initAuthStatus() {
       window.location.href = "index.html";
     });
   } else {
+    authStatus.textContent = "";
     navSignIn?.classList.remove("hidden");
     navSignUp?.classList.remove("hidden");
     navProfile?.classList.add("hidden");
@@ -306,26 +355,33 @@ function initAccessibilityPage() {
 }
 
 function initHomePage() {
-  const filterForm = document.querySelector("#filterForm");
+  const filterForm = document.getElementById("filterForm");
   const clearFiltersButton = document.querySelector("#clearFilters");
   const categoryFilter = document.querySelector("#categoryFilter");
   const dateFilter = document.querySelector("#dateFilter");
-  const host = document.querySelector("#showsGrid");
+  const host = document.querySelector("#showsGrid") || document.querySelector("#concertsSection");
 
-  if (!host) return;
-
+  // seed from URL (so links with ?category=... work)
   const pageParams = new URLSearchParams(window.location.search);
   currentShowFilters = {
-    category: pageParams.get("category") || "all",
+    genre: pageParams.get("genre") || "all",
     date: pageParams.get("date") || ""
   };
 
   if (categoryFilter) {
-    categoryFilter.value = currentShowFilters.category;
+    categoryFilter.value = currentShowFilters.genre;
+    categoryFilter.addEventListener("change", () => {
+      currentShowFilters.genre = categoryFilter.value || "all";
+      renderShows();
+    });
   }
 
   if (dateFilter) {
     dateFilter.value = currentShowFilters.date;
+    dateFilter.addEventListener("change", () => {
+      currentShowFilters.date = dateFilter.value || "";
+      renderShows();
+    });
   }
 
   updateFilterSummary();
@@ -334,7 +390,7 @@ function initHomePage() {
     filterForm.addEventListener("submit", (event) => {
       event.preventDefault();
       currentShowFilters = {
-        category: categoryFilter?.value || "all",
+        genre: categoryFilter?.value || "all",
         date: dateFilter?.value || ""
       };
       renderShows();
@@ -344,7 +400,7 @@ function initHomePage() {
   if (clearFiltersButton) {
     clearFiltersButton.addEventListener("click", () => {
       currentShowFilters = {
-        category: "all",
+        genre: "all",
         date: ""
       };
 
@@ -360,23 +416,25 @@ function initHomePage() {
     });
   }
 
-  host.addEventListener("click", async (event) => {
-    const button = event.target.closest("[data-favourite-id]");
-    if (!button) return;
+  if (host) {
+    host.addEventListener("click", async (event) => {
+      const button = event.target.closest("[data-favourite-id]");
+      if (!button) return;
 
-    const showId = button.getAttribute("data-favourite-id");
-    if (!showId) return;
+      const showId = button.getAttribute("data-favourite-id");
+      if (!showId) return;
 
-    button.disabled = true;
-    try {
-      await toggleFavouriteShow(showId);
-      await renderShows();
-    } catch (error) {
-      alert(error.message);
-    } finally {
-      button.disabled = false;
-    }
-  });
+      button.disabled = true;
+      try {
+        await toggleFavouriteShow(showId);
+        await renderShows();
+      } catch (error) {
+        alert(error.message);
+      } finally {
+        button.disabled = false;
+      }
+    });
+  }
 
   renderShows();
 }
@@ -643,36 +701,75 @@ function setUserProfile(profile) {
 }
 
 function initProfilePage() {
+  const profileView = document.getElementById("profileView");
+  const profileViewImg = document.getElementById("profileViewImg");
+  const profileViewBio = document.getElementById("profileViewBio");
+  const editBtn = document.getElementById("editProfileBtn");
+
   const form = document.getElementById("profileForm");
   const bioInput = document.getElementById("bioInput");
   const profilePicture = document.getElementById("profilePicture");
   const profilePreview = document.getElementById("profilePreview");
+  const saveBtn = document.getElementById("saveProfileBtn");
+  const cancelBtn = document.getElementById("cancelEditBtn");
 
-  const profile = getUserProfile();
-  bioInput.value = profile.bio || "";
-  if (profile.picture) {
-    profilePreview.src = profile.picture;
+  if (!profileView || !form) return;
+
+  function showViewMode(profile) {
+    profileViewImg.src = profile.picture || profileViewImg.src;
+    profileViewBio.textContent = profile.bio || "No bio yet.";
+    profileView.classList.remove("hidden");
+    form.classList.add("hidden");
   }
 
-  profilePicture.addEventListener("change", (e) => {
+  function showEditMode(profile) {
+    profilePreview.src = profile.picture || profilePreview.src;
+    bioInput.value = profile.bio || "";
+    profileView.classList.add("hidden");
+    form.classList.remove("hidden");
+  }
+
+  const profile = getUserProfile();
+  showViewMode(profile);
+
+  editBtn?.addEventListener("click", () => {
+    showEditMode(getUserProfile());
+  });
+
+  profilePicture?.addEventListener("change", (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
-
     const reader = new FileReader();
-    reader.onload = (event) => {
-      profilePreview.src = event.target?.result;
+    reader.onload = (ev) => {
+      profilePreview.src = ev.target?.result;
     };
     reader.readAsDataURL(file);
   });
 
   form.addEventListener("submit", (e) => {
     e.preventDefault();
-    const profile = {
-      bio: bioInput.value,
-      picture: profilePreview.src
+
+    const bio = (bioInput?.value || "").trim();
+    const picture = profilePreview?.src || null;
+
+    const newProfile = {
+      bio,
+      picture
     };
-    setUserProfile(profile);
-    alert("Profile saved!");
+
+    try {
+      setUserProfile(newProfile);
+      showViewMode(newProfile);
+      // feedback
+      alert("Profile saved locally.");
+    } catch (err) {
+      console.error("Failed to save profile:", err);
+      alert("Unable to save profile locally.");
+    }
+  });
+
+  cancelBtn?.addEventListener("click", () => {
+    showViewMode(getUserProfile());
   });
 }
 
@@ -686,7 +783,7 @@ document.addEventListener("DOMContentLoaded", () => {
   initPaymentPage();
   initTicketsPage();
   initAccessibilityPage();
-  if (document.getElementById("profileForm")) {
+  if (document.getElementById("profileForm") || document.getElementById("profileView")) {
     initProfilePage();
   }
 });
