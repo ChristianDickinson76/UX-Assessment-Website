@@ -17,3 +17,7 @@ then go to 127.0.01:3000 and the website should be there
 if anyone needs any help or someone already has a service running at port 3000 or 5500 message me (harry) on the teams chat   
 
 ps these are installation instructions that worked on my machine (linux) i assume there the same on windows if not lmk
+
+
+#AI Disclaimer
+This assignment used generative AI in the following ways for the purposes of completing the assignment : planning, editing (some frontend JavaScript).
